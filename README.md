@@ -39,11 +39,11 @@
 ```
 
 ## 示例
-加了这个权限可以解锁玩家的禁用：
+加了这个权限可以解锁玩家的禁用：  
 /group addperm default 免检地表弹幕
 
-也可以新建一个A用户组拥有地表爆炸物使用权：
+也可以新建一个A用户组拥有地表爆炸物使用权：  
 /group add A 免检地表弹幕
 
-且弹幕组拥有default组的所有权限：
+且弹幕组拥有default组的所有权限：  
 /group parent A default
