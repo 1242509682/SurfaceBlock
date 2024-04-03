@@ -12,7 +12,7 @@ namespace 禁地表弹幕
         public override string Author => "羽学 感谢Cai 西江小子 熙恩";
         public override string Description => "禁止特定弹幕在地表产生";
         public override string Name => "禁地表弹幕";
-        public override Version Version => new(1, 0, 0, 4);
+        public override Version Version => new(1, 0, 0, 5);
         internal static Configuration Config;
         public static bool _isEnabled; // 存储插件是否启用的状态，默认为false
         public 禁地表弹幕(Main game) : base(game)
@@ -21,16 +21,24 @@ namespace 禁地表弹幕
             _isEnabled = false; // 初始化为关闭状态
 
             // 添加一个定时器，20秒后执行ReloadConfig方法
-            System.Timers.Timer timer = new System.Timers.Timer(20000); // 设置定时器间隔为20000毫秒（即20秒）
+            /*
+             * System.Timers.Timer timer = new System.Timers.Timer(20000); // 设置定时器间隔为20000毫秒（即20秒）
             timer.Elapsed += (sender, eventArgs) => ReloadConfig(null); // 注册Elapsed事件处理器
             timer.AutoReset = false; // 设置定时器只执行一次
             timer.Start(); // 开始计时器
+            */
         }
         public override void Initialize()
         {
             GetDataHandlers.NewProjectile += OnProjectileNew;
-            GeneralHooks.ReloadEvent += ReloadConfig; 
+            GeneralHooks.ReloadEvent += ReloadConfig;
+            ServerApi.Hooks.GamePostInitialize.Register(this, OnWorldload);
             Commands.ChatCommands.Add(new Command("禁地表弹幕", Command, "禁地表弹幕")); //添加一个指令权限
+        }
+
+        private static void OnWorldload(EventArgs args)
+        {
+            LoadConfig();
         }
 
         private static void ReloadConfig(ReloadEventArgs args = null)
