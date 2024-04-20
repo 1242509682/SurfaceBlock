@@ -1,5 +1,5 @@
 ﻿using Terraria;
-using System.Timers;
+using Microsoft.Xna.Framework;
 using TerrariaApi.Server;
 using TShockAPI;
 using TShockAPI.Hooks;
@@ -12,25 +12,19 @@ namespace 禁地表弹幕
         public override string Author => "羽学 感谢Cai 西江小子 熙恩";
         public override string Description => "禁止特定弹幕在地表产生";
         public override string Name => "禁地表弹幕";
-        public override Version Version => new(1, 0, 0, 5);
+        public override Version Version => new(1, 0, 0, 6);
         internal static Configuration Config;
         public static bool _isEnabled; // 存储插件是否启用的状态，默认为false
+
         public 禁地表弹幕(Main game) : base(game)
         {
             Order = 40;
             _isEnabled = false; // 初始化为关闭状态
-
-            // 添加一个定时器，20秒后执行ReloadConfig方法
-            /*
-            System.Timers.Timer timer = new System.Timers.Timer(20000); // 设置定时器间隔为20000毫秒（即20秒）
-            timer.Elapsed += (sender, eventArgs) => ReloadConfig(null); // 注册Elapsed事件处理器
-            timer.AutoReset = false; // 设置定时器只执行一次
-            timer.Start(); // 开始计时器
-            */
         }
+
         public override void Initialize()
         {
-            GetDataHandlers.NewProjectile += OnProjectileNew;
+            GetDataHandlers.NewProjectile += OnProjectileNew!;
             GeneralHooks.ReloadEvent += ReloadConfig;
             ServerApi.Hooks.GamePostInitialize.Register(this, OnWorldload);
             Commands.ChatCommands.Add(new Command("禁地表弹幕", Command, "禁地表弹幕")); //添加一个指令权限
@@ -41,7 +35,7 @@ namespace 禁地表弹幕
             LoadConfig();
         }
 
-        private static void ReloadConfig(ReloadEventArgs args = null)
+        private static void ReloadConfig(ReloadEventArgs args = null!)
         {
             LoadConfig();
             // 如果 args 不为空，则发送重载成功的消息
@@ -67,6 +61,7 @@ namespace 禁地表弹幕
             LoadConfig(); // 先加载配置文件，确保_isEnabled反映最新的配置状态
             bool previousState = _isEnabled; // 记录之前的启用状态
             Config.Write(Configuration.FilePath); // 将新状态写入配置文件
+
             // 检查玩家是否具有“禁地表弹幕”权限
             if (!args.Player.HasPermission("禁地表弹幕"))
             {
@@ -139,15 +134,13 @@ namespace 禁地表弹幕
                 TShock.Log.ConsoleInfo(fullConsoleMessage);
             }
         }
-        //禁止生成的弹幕
-        private static readonly HashSet<int> restrictedProjectiles = new HashSet<int>();
 
         // 在事件处理方法中使用自定义高度
         private void CheckAndHandleNormalHeightRestriction(GetDataHandlers.NewProjectileEventArgs e)
         {
             if (_isEnabled && Config.开启正常高度限制)
             {
-                if (e.Position.Y < Config.正常限制高度阈值 && (Config.禁用地表弹幕id.Contains(e.Type) || restrictedProjectiles.Contains(e.Type)))
+                if (e.Position.Y < Config.正常限制高度阈值 && (Config.禁用地表弹幕id.Contains(e.Type)))
                 {
                     e.Player.RemoveProjectile(e.Identity, e.Owner);
                     e.Handled = true;
@@ -167,7 +160,7 @@ namespace 禁地表弹幕
                 if (Config.开启正常高度限制)
                     return;
 
-                if (e.Position.Y > Config.颠倒限制高度阈值 && (Config.禁用地表弹幕id.Contains(e.Type) || restrictedProjectiles.Contains(e.Type)))
+                if (e.Position.Y > Config.颠倒限制高度阈值 && (Config.禁用地表弹幕id.Contains(e.Type)))
                 {
                     e.Player.RemoveProjectile(e.Identity, e.Owner);
                     e.Handled = true;
@@ -186,6 +179,18 @@ namespace 禁地表弹幕
 
             CheckAndHandleNormalHeightRestriction(e);
             CheckAndHandleInvertedHeightRestriction(e);
+
+            Vector2 playerPosition = new Vector2(e.Player.TileX, e.Player.TileY);
+            Vector2 projectilePosition = new Vector2(e.Position.X * 16, e.Position.Y * 16);
+
+            float distance = Vector2.Distance(playerPosition, projectilePosition);
+            if (distance < 1f)
+            {
+                e.Player.SendData(PacketTypes.ProjectileNew);
+                e.Player.SendData(PacketTypes.ProjectileDestroy);
+                e.Player.RemoveProjectile(e.Identity, e.Owner);
+                e.Handled = true;
+            }
         }
     }
 }
