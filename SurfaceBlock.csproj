@@ -4,7 +4,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <AssemblyName>$(MSBuildProjectName) v1.0.5</AssemblyName>
+    <AssemblyName>$(MSBuildProjectName)</AssemblyName>
     <BaseOutputPath></BaseOutputPath>
     <ProduceReferenceAssembly>True</ProduceReferenceAssembly>
   </PropertyGroup>
@@ -30,9 +30,5 @@
       <HintPath>..\..\测试服\ServerPlugins\TShockAPI.dll</HintPath>
     </Reference>
   </ItemGroup>
-
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="copy bin\Release\net6.0\*.dll C:\Users\羽学\Desktop\Beta\ServerPlugins\&#xD;&#xA;taskkill /F /IM TShock.Server.exe" />
-  </Target>
 
 </Project>

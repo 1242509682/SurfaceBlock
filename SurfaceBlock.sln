@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34330.188
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "禁地表弹幕", "禁地表弹幕.csproj", "{1CA98CA9-DE72-4A72-AFD8-3D53313710C2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SurfaceBlock", "SurfaceBlock.csproj", "{1CA98CA9-DE72-4A72-AFD8-3D53313710C2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
