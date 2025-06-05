@@ -13,7 +13,7 @@ public class SurfaceBlock : TerrariaPlugin
     public override string Name => "禁地表弹幕";
     public override string Author => "羽学 Cai 西江小子 熙恩";
     public override string Description => "禁止特定弹幕在地表产生";
-    public override Version Version => new(2, 0, 0, 0);
+    public override Version Version => new(2, 0, 1);
     #endregion
 
     #region 注册与卸载钩子
@@ -61,7 +61,7 @@ public class SurfaceBlock : TerrariaPlugin
     #endregion
 
     #region 玩家进服自动建数据
-    public static Database DB = new();
+    public static Datas DB = new();
     private void OnGreetPlayer(GreetPlayerEventArgs args)
     {
         var plr = TShock.Players[args.Who];
@@ -74,7 +74,7 @@ public class SurfaceBlock : TerrariaPlugin
         // 如果玩家不在数据表中，则创建新数据
         if (data == null)
         {
-            var newData = new Database.PlayerData
+            var newData = new Datas.PlayerData
             {
                 Name = plr.Name,
                 Enabled = false,
@@ -96,7 +96,7 @@ public class SurfaceBlock : TerrariaPlugin
         {
             return;
         }
-        
+
         if (Config.ClearTable.Contains(e.Type))
         {
             if (!Main.remixWorld) //正常种子
@@ -131,33 +131,34 @@ public class SurfaceBlock : TerrariaPlugin
     public static void Remover(GetDataHandlers.NewProjectileEventArgs e)
     {
         var data = DB.GetData(e.Player.Name);
+        if (data == null)
+            return;
+
         var now = DateTime.UtcNow;
-        if (data != null)
+
+        if (e.Index < 0 || e.Index >= Main.projectile.Length)
+            return;
+
+        string name = Terraria.Lang.GetProjectileName(e.Type).Value;
+        if (name.StartsWith("ProjectileName."))
         {
-            string name = (string)Terraria.Lang.GetProjectileName(e.Type);
-            if (name.StartsWith("ProjectileName."))
-            {
-                name = "未知";
-            }
-
-            Main.projectile[e.Index].type = 0;
-            Main.projectile[e.Index].frame = 0;
-            Main.projectile[e.Index].timeLeft = -1;
-            Main.projectile[e.Index].active = false;
-
-            if (Config.Mess)
-            {
-                TShock.Utils.Broadcast($"玩家 [c/4EA4F2:{e.Player.Name}] 使用禁地表弹幕 [c/15EDDB:{name}] 已清除!", 240, 255, 150);
-            }
-
-            TSPlayer.All.RemoveProjectile(e.Index, e.Owner);
-            TSPlayer.All.SendData(PacketTypes.ProjectileNew, "", e.Index);
-
-            //开启销毁标识 记录当前销毁弹幕时间给PlayerUpdate TileEdit ItemDorp 3个方法用
-            data.Enabled = true;
-            data.Time = now;
-            DB.UpdateData(data);
+            name = "未知";
         }
+
+        // 发送广播消息
+        if (Config.Mess)
+        {
+            TShock.Utils.Broadcast($"玩家 [c/4EA4F2:{e.Player.Name}] 使用禁地表弹幕 [c/15EDDB:{name}] 已清除!", 240, 255, 150);
+        }
+
+        // 安全删除弹幕
+        TSPlayer.All.SendData(PacketTypes.ProjectileDestroy, "", e.Index, e.Owner);
+        TSPlayer.All.RemoveProjectile(e.Index, e.Owner);
+
+        // 更新数据库标识
+        data.Enabled = true;
+        data.Time = now;
+        DB.UpdateData(data);
     }
     #endregion
 
@@ -181,7 +182,7 @@ public class SurfaceBlock : TerrariaPlugin
                 {
                     var proj = Main.projectile[i];
 
-                    if (Config.ClearTable.Contains(proj.type))
+                    if (proj.owner == plr.Index && Config.ClearTable.Contains(proj.type))
                     {
                         if (Config.ItemDorp)
                         {
@@ -193,7 +194,7 @@ public class SurfaceBlock : TerrariaPlugin
                         proj.timeLeft = -1;
                         proj.active = false;
                         TSPlayer.All.RemoveProjectile(i, proj.owner);
-                        TSPlayer.All.SendData(PacketTypes.ProjectileNew, "", i);
+                        TSPlayer.All.SendData(PacketTypes.ProjectileNew, "", i, 0f, 0f, 0f, 0);
                     }
                 }
 
@@ -234,7 +235,6 @@ public class SurfaceBlock : TerrariaPlugin
     #endregion
 
     #region 恢复被破坏的图格方法
-    private static readonly Dictionary<(int, int), Tile> Orig = new Dictionary<(int, int), Tile>();
     private void OnTileEdit(object sender, GetDataHandlers.TileEditEventArgs args)
     {
         var plr = args.Player;
